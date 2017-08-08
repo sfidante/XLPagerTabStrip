@@ -55,7 +55,8 @@ public struct ButtonBarPagerTabStripSettings {
         public var buttonBarItemBackgroundColor: UIColor?
         public var buttonBarItemFont = UIFont.systemFont(ofSize: 18)
         public var buttonBarItemLeftRightMargin: CGFloat = 8
-        public var buttonBarItemTitleColor: UIColor?
+        public var buttonBarItemSelectedTitleColor: UIColor?
+        public var buttonBarItemUnselectedTitleColor: UIColor?
         @available(*, deprecated: 7.0.0) public var buttonBarItemsShouldFillAvailiableWidth: Bool {
             set {
                 buttonBarItemsShouldFillAvailableWidth = newValue
@@ -223,6 +224,7 @@ open class ButtonBarPagerTabStripViewController: PagerTabStripViewController, Pa
     open func updateIndicator(for viewController: PagerTabStripViewController, fromIndex: Int, toIndex: Int) {
         guard shouldUpdateButtonBarView else { return }
         buttonBarView.moveTo(index: toIndex, animated: false, swipeDirection: toIndex < fromIndex ? .right : .left, pagerScroll: .yes)
+        updateCellTitleColor(fromIndex: fromIndex, toIndex: buttonBarView.selectedIndex)
 
         if let changeCurrentIndex = changeCurrentIndex {
             let oldIndexPath = IndexPath(item: currentIndex != fromIndex ? fromIndex : toIndex, section: 0)
@@ -236,6 +238,8 @@ open class ButtonBarPagerTabStripViewController: PagerTabStripViewController, Pa
     open func updateIndicator(for viewController: PagerTabStripViewController, fromIndex: Int, toIndex: Int, withProgressPercentage progressPercentage: CGFloat, indexWasChanged: Bool) {
         guard shouldUpdateButtonBarView else { return }
         buttonBarView.move(fromIndex: fromIndex, toIndex: toIndex, progressPercentage: progressPercentage, pagerScroll: .yes)
+        updateCellTitleColor(fromIndex: fromIndex, toIndex: buttonBarView.selectedIndex)
+
         if let changeCurrentIndexProgressive = changeCurrentIndexProgressive {
             let oldIndexPath = IndexPath(item: currentIndex != fromIndex ? fromIndex : toIndex, section: 0)
             let newIndexPath = IndexPath(item: currentIndex, section: 0)
@@ -245,6 +249,18 @@ open class ButtonBarPagerTabStripViewController: PagerTabStripViewController, Pa
         }
     }
 
+    private func updateCellTitleColor(fromIndex: Int, toIndex: Int) {
+        let fromIndexPath = IndexPath(item: fromIndex, section: 0)
+        if let fromCell = buttonBarView.cellForItem(at: fromIndexPath) as? ButtonBarViewCell {
+            fromCell.label.textColor = settings.style.buttonBarItemUnselectedTitleColor
+        }
+        
+        let toIndexPath = IndexPath(item: toIndex, section: 0)
+        if let newCell = buttonBarView.cellForItem(at: toIndexPath) as? ButtonBarViewCell {
+            newCell.label.textColor = settings.style.buttonBarItemSelectedTitleColor
+        }
+    }
+    
     private func cellForItems(at indexPaths: [IndexPath], reloadIfNotVisible reload: Bool = true) -> [ButtonBarViewCell?] {
         let cells = indexPaths.map { buttonBarView.cellForItem(at: $0) as? ButtonBarViewCell }
 
@@ -315,7 +331,11 @@ open class ButtonBarPagerTabStripViewController: PagerTabStripViewController, Pa
 
         cell.label.text = indicatorInfo.title
         cell.label.font = settings.style.buttonBarItemFont
-        cell.label.textColor = settings.style.buttonBarItemTitleColor ?? cell.label.textColor
+
+        let selectedColor = settings.style.buttonBarItemSelectedTitleColor ?? cell.label.textColor
+        let unselectedColor = settings.style.buttonBarItemUnselectedTitleColor ?? cell.label.textColor
+        cell.label.textColor = (currentIndex == indexPath.item) ? selectedColor : unselectedColor
+
         cell.contentView.backgroundColor = settings.style.buttonBarItemBackgroundColor ?? cell.contentView.backgroundColor
         cell.backgroundColor = settings.style.buttonBarItemBackgroundColor ?? cell.backgroundColor
         
